@@ -20,23 +20,8 @@
 | **F9** | 開啟/隱藏 速查表圖片 |
 | **F10** | 切換整個助手視窗的顯示/隱藏 |
 
-## 🛠️ 開發與執行
 
 本專案使用 Vite 作為建構工具。
-
-1. 確保已安裝 [Node.js](https://nodejs.org/)。
-2. 進入專案目錄：
-   ```bash
-   cd poe_helper_web
-   ```
-3. 安裝依賴：
-   ```bash
-   npm install
-   ```
-4. 啟動開發者模式 (Electron)：
-   ```bash
-   npm run electron
-   ```
 
 ## 📦 技術棧
 
