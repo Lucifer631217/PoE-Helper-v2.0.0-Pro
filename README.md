@@ -1,0 +1,31 @@
+PoE Helper v2.0.0 Pro
+這是一個專為《流亡黯道》(Path of Exile) 玩家設計的現代化開荒輔助工具，基於 React + Electron 打造，提供極簡、高效且高度自訂的遊戲輔助體驗。
+
+✨ 功能亮點
+📌 視窗置頂：永遠顯示在遊戲畫面上方，支援透明度調整，不擋視線。
+⏲️ 動態計時：精確追蹤開荒用時，支援暫停與快速歸零。
+📝 自定義攻略：內建編輯器，可自由修改或匯入專屬的 1-10 章開荒路線。
+🔍 Regex 複製管理 (F8)：預設常用商人搜尋字串，點擊即複製，提升遊戲效率。
+🖼️ 速查圖片檢視 (F9)：支援 POB 天賦或速查表圖片，可自由縮放、平移。
+🌓 個性化 UI：支援深色/淺色模式、三段字體大小調整。
+⌨️ 快捷隱藏 (F10)：一鍵隱藏/顯示視窗，應對突發戰鬥。
+⌨️ 快捷鍵說明
+快捷鍵	功能描述
+F8	開啟 Regex 複製面板
+F9	開啟/隱藏 速查表圖片
+F10	切換整個助手視窗的顯示/隱藏
+🛠️ 開發與執行
+本專案使用 Vite 作為建構工具。
+
+確保已安裝 Node.js。
+進入專案目錄：
+cd poe_helper_web
+安裝依賴：
+npm install
+啟動開發者模式 (Electron)：
+npm run electron
+📦 技術棧
+Frontend: React, Tailwind CSS, Lucide React
+Animation: Framer Motion
+Desktop: Electron (IPC, Global Shortcuts)
+Build: Vite
