@@ -26,7 +26,8 @@ import {
     Copy,
     Keyboard,
     Timer,
-    ListChecks
+    ListChecks,
+    Map
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -507,10 +508,25 @@ const HotkeySettingsModal = ({ hotkeys, onSave, onClose, dark }) => {
 // ============================================================
 // 主應用
 // ============================================================
+const FONT_FAMILIES = [
+    { label: '微軟正黑', value: '"Microsoft JhengHei", "Apple LiGothic Medium", "PingFang TC", sans-serif' },
+    { label: '標楷體', value: 'BiauKai, "DFKai-SB", serif' },
+    { label: '黑體', value: '"Heiti TC", "LiHei Pro", sans-serif' },
+    { label: '預設', value: 'sans-serif' },
+];
+
+const FONT_WEIGHTS = [
+    { label: '細', value: '300' },
+    { label: '正常', value: 'normal' },
+    { label: '粗', value: 'bold' },
+    { label: '極粗', value: '900' },
+];
+
 const FONT_SIZES = [
     { label: '小', value: 11 },
     { label: '中', value: 13 },
     { label: '大', value: 15 },
+    { label: '特', value: 17 },
 ];
 
 const App = () => {
@@ -522,12 +538,16 @@ const App = () => {
     const [opacity, setOpacity] = useState(saved?.alpha ?? 0.9);
     const [dark, setDark] = useState(saved?.dark ?? false);
     const [fontSize, setFontSize] = useState(saved?.fontSize ?? 13);
+    const [fontFamily, setFontFamily] = useState(saved?.fontFamily ?? '"Microsoft JhengHei", "Apple LiGothic Medium", "PingFang TC", sans-serif');
+    const [fontWeight, setFontWeight] = useState(saved?.fontWeight ?? 'normal');
     // 多張速查表圖片 (從舊的單張格式自動遷移)
     const [cheatsheets, setCheatsheets] = useState(() => {
         if (saved?.cheatsheets && Array.isArray(saved.cheatsheets)) return saved.cheatsheets;
         if (saved?.cheatsheet) return [saved.cheatsheet];
         return [];
     });
+    const [actImages, setActImages] = useState(saved?.actImages ?? {});
+    const [showActMap, setShowActMap] = useState(false);
     const [regexes, setRegexes] = useState(saved?.regexes ?? [
         { id: 1, name: '3連色 (紅綠藍)', regex: 'r-g-b|r-b-g|g-r-b|g-b-r|b-r-g|b-g-r' },
         { id: 2, name: '跑速鞋 (10%以上)', regex: '1[0-9]% increased movement speed' }
@@ -602,9 +622,9 @@ const App = () => {
 
     // --- 持久化 ---
     const persist = useCallback(() => {
-        saveConfig({ last_act: safeActIdx, checked: checkedTasks, time: elapsedMs, alpha: opacity, dark, fontSize, cheatsheets, regexes, showTimer, showGuide });
-    }, [safeActIdx, checkedTasks, elapsedMs, opacity, dark, fontSize, cheatsheets, regexes, showTimer, showGuide]);
-    useEffect(() => { persist(); }, [safeActIdx, checkedTasks, opacity, dark, fontSize, cheatsheets, regexes, showTimer, showGuide]);
+        saveConfig({ last_act: safeActIdx, checked: checkedTasks, time: elapsedMs, alpha: opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide });
+    }, [safeActIdx, checkedTasks, elapsedMs, opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide]);
+    useEffect(() => { persist(); }, [safeActIdx, checkedTasks, opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide]);
     useEffect(() => { if (!isRunning) { persist(); return; } const id = setInterval(persist, 5000); return () => clearInterval(id); }, [isRunning, persist]);
 
     const handleOpacity = (val) => { setOpacity(val); if (isElectron) window.electronAPI.setOpacity(val); };
@@ -616,7 +636,7 @@ const App = () => {
         if (!window.confirm('確認重置所有進度？')) return;
         setCheckedTasks({}); setElapsedMs(0); setIsRunning(false); setActIdx(0);
         startTimeRef.current = Date.now();
-        saveConfig({ last_act: 0, checked: {}, time: 0, alpha: opacity, dark, fontSize, cheatsheets, regexes, showTimer, showGuide });
+        saveConfig({ last_act: 0, checked: {}, time: 0, alpha: opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide });
         toast('進度已重置');
     };
 
@@ -700,23 +720,47 @@ const App = () => {
                                 <input type="range" min="0.1" max="1" step="0.05" value={opacity} onChange={e => handleOpacity(parseFloat(e.target.value))} className="w-full h-1 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#1a73e8]" />
                             </div>
 
-                            {/* 深淺模式 + 字體大小 (同一行) */}
-                            <div className="flex items-center gap-2">
-                                {/* 深淺模式 */}
-                                <button onClick={() => setDark(d => !d)}
-                                    className={cn("flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95 flex-1 justify-center",
-                                        dark ? "bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25" : "bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20"
-                                    )}>
-                                    {dark ? <Sun size={12} /> : <Moon size={12} />}
-                                    <span>{dark ? '淺色模式' : '深色模式'}</span>
-                                </button>
-
-                                {/* 字體大小 */}
-                                <div className="flex items-center gap-1">
-                                    <Type size={12} className={textSecondary} />
+                            {/* 字型、粗細、大小設定面板 (Row 1) */}
+                            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+                                {/* 字型選擇 */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="w-5 h-5 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0">
+                                        <Type size={12} />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {FONT_FAMILIES.map(ff => (
+                                            <button key={ff.value} onClick={() => setFontFamily(ff.value)}
+                                                className={cn("px-1.5 py-1 rounded text-[10px] font-medium transition-all active:scale-95 truncate max-w-[48px]",
+                                                    fontFamily.includes(ff.value.split(',')[0])
+                                                        ? "bg-[#1a73e8] text-white"
+                                                        : cn("hover:bg-gray-500/10", textSecondary)
+                                                )}
+                                                title={ff.label}>
+                                                {ff.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-0.5 shrink-0" />
+                                {/* 粗細設定 */}
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {FONT_WEIGHTS.map(fw => (
+                                        <button key={fw.value} onClick={() => setFontWeight(fw.value)}
+                                            className={cn("px-1.2 py-1 rounded text-[10px] font-medium transition-all active:scale-95",
+                                                fontWeight === fw.value
+                                                    ? "bg-[#1a73e8] text-white"
+                                                    : cn("hover:bg-gray-500/10", textSecondary)
+                                            )}>
+                                            {fw.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-0.5 shrink-0" />
+                                {/* 大小設定 */}
+                                <div className="flex items-center gap-1 shrink-0">
                                     {FONT_SIZES.map(fs => (
                                         <button key={fs.value} onClick={() => setFontSize(fs.value)}
-                                            className={cn("px-2 py-1 rounded text-[10px] font-medium transition-all active:scale-95",
+                                            className={cn("px-1.5 py-1 rounded text-[10px] font-medium transition-all active:scale-95",
                                                 fontSize === fs.value
                                                     ? "bg-[#1a73e8] text-white"
                                                     : cn("hover:bg-gray-500/10", textSecondary)
@@ -726,6 +770,27 @@ const App = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* 深淺模式 & 自訂快捷鍵 (Row 2) */}
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setDark(d => !d)}
+                                    className={cn("flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95 flex-1 justify-center",
+                                        dark ? "bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25" : "bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20"
+                                    )}>
+                                    {dark ? <Sun size={12} /> : <Moon size={12} />}
+                                    <span>{dark ? '淺色模式' : '深色模式'}</span>
+                                </button>
+                                {isElectron && (
+                                    <button onClick={() => { setShowHotkeySettings(true); setShowSettings(false); }}
+                                        className={cn("flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95",
+                                            dark ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" : "bg-amber-50 text-amber-600 hover:bg-amber-100"
+                                        )}>
+                                        <Keyboard size={12} /><span>自訂快捷鍵</span>
+                                    </button>
+                                )}
+                            </div>
+
+
 
                             {/* 自定義攻略與Vendor Regex (同一行) */}
                             <div className="flex items-center gap-2">
@@ -759,35 +824,60 @@ const App = () => {
                                 </button>
                             </div>
 
-                            {/* 設定速查表 (多張) */}
+                            {/* 路線圖 & 速查表圖片 (Electron Only) */}
                             {isElectron && (
                                 <div className="flex items-center gap-2">
-                                    <button onClick={async () => {
-                                        const paths = await window.electronAPI.selectImages();
-                                        if (paths && paths.length > 0) { setCheatsheets(prev => [...prev, ...paths]); toast(`已新增 ${paths.length} 張圖片`); }
-                                    }}
-                                        className={cn("flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95",
-                                            dark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-[#5f6368] hover:bg-gray-200"
-                                        )}>
-                                        <ImageIcon size={12} /><span>速查表圖片 ({cheatsheets.length})</span>
-                                    </button>
-                                    {cheatsheets.length > 0 && (
-                                        <button onClick={() => { setCheatsheets([]); toast('已清除所有圖片'); }}
-                                            className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors" title="清除全部">
-                                            <X size={12} />
+                                    {/* 路線圖 */}
+                                    <div className="flex-1 flex items-center gap-1">
+                                        <button onClick={async () => {
+                                            const paths = await window.electronAPI.selectImages();
+                                            if (paths && paths.length > 0) {
+                                                setActImages(prev => {
+                                                    const existing = prev[currentAct] || [];
+                                                    return { ...prev, [currentAct]: [...existing, ...paths] };
+                                                });
+                                                toast(`已為 ${currentAct} 新增圖片`);
+                                            }
+                                        }}
+                                            className={cn("flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95",
+                                                dark ? "bg-teal-500/10 text-teal-400 hover:bg-teal-500/20" : "bg-teal-50 text-teal-600 hover:bg-teal-100"
+                                            )} title={`為「${currentAct}」設定專屬路線圖`}>
+                                            <Map size={12} /><span className="truncate max-w-[80px]">{currentAct.split('：')[0]}</span>
+                                            <span>({actImages[currentAct]?.length || 0})</span>
                                         </button>
-                                    )}
+                                        {actImages[currentAct]?.length > 0 && (
+                                            <button onClick={() => {
+                                                setActImages(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[currentAct];
+                                                    return next;
+                                                });
+                                                toast(`已清除 ${currentAct} 的路線圖`);
+                                            }}
+                                                className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors shrink-0" title="清除本章路線圖">
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {/* 速查表 */}
+                                    <div className="flex-1 flex items-center gap-1">
+                                        <button onClick={async () => {
+                                            const paths = await window.electronAPI.selectImages();
+                                            if (paths && paths.length > 0) { setCheatsheets(prev => [...prev, ...paths]); toast(`已新增 ${paths.length} 張圖片`); }
+                                        }}
+                                            className={cn("flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95",
+                                                dark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-[#5f6368] hover:bg-gray-200"
+                                            )}>
+                                            <ImageIcon size={12} /><span>速查表 ({cheatsheets.length})</span>
+                                        </button>
+                                        {cheatsheets.length > 0 && (
+                                            <button onClick={() => { setCheatsheets([]); toast('已清除所有圖片'); }}
+                                                className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors shrink-0" title="清除全部">
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-
-                            {/* 自定義快捷鍵 */}
-                            {isElectron && (
-                                <button onClick={() => { setShowHotkeySettings(true); setShowSettings(false); }}
-                                    className={cn("w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95",
-                                        dark ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" : "bg-amber-50 text-amber-600 hover:bg-amber-100"
-                                    )}>
-                                    <Keyboard size={12} /><span>自定義快捷鍵</span>
-                                </button>
                             )}
 
                             {/* 快捷鍵提示 */}
@@ -826,9 +916,34 @@ const App = () => {
                         <ChevronLeft size={18} className={textSecondary} />
                     </button>
                     <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
-                        <h2 className={cn("text-xs font-bold px-2.5 py-0.5 rounded-md truncate", dark ? "bg-blue-500/15 text-blue-400" : "bg-blue-50 text-[#1a73e8]")}>
-                            {currentAct}
-                        </h2>
+                        <div className="flex items-center gap-1">
+                            <h2 className={cn("text-xs font-bold px-2.5 py-0.5 rounded-md truncate", dark ? "bg-blue-500/15 text-blue-400" : "bg-blue-50 text-[#1a73e8]")}>
+                                {currentAct}
+                            </h2>
+                            <button onClick={() => {
+                                if (actImages[currentAct] && actImages[currentAct].length > 0) {
+                                    setShowActMap(true);
+                                } else if (isElectron) {
+                                    window.electronAPI.selectImages().then(paths => {
+                                        if (paths && paths.length > 0) {
+                                            setActImages(prev => {
+                                                const existing = prev[currentAct] || [];
+                                                return { ...prev, [currentAct]: [...existing, ...paths] };
+                                            });
+                                            toast(`已為 ${currentAct} 新增路線圖`);
+                                        }
+                                    });
+                                } else {
+                                    toast('請在應用程式中新增圖片');
+                                }
+                            }} className={cn("p-1.5 rounded transition-colors active:scale-90",
+                                actImages[currentAct] && actImages[currentAct].length > 0
+                                    ? (dark ? "bg-blue-500/20 text-[#1a73e8] hover:bg-blue-500/30" : "bg-blue-50 text-[#1a73e8] hover:bg-blue-100")
+                                    : (dark ? "text-gray-500 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-100")
+                            )} title={actImages[currentAct] && actImages[currentAct].length > 0 ? "查看路線圖" : "新增路線圖"}>
+                                <Map size={14} />
+                            </button>
+                        </div>
                         <span className={cn("text-[9px] font-medium whitespace-nowrap shrink-0", textSecondary)}>
                             {currentCompleted}/{currentTasks.length} · {safeActIdx + 1}/{acts.length}章
                         </span>
@@ -862,7 +977,7 @@ const App = () => {
                                         )}>
                                             {isChecked && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={10} strokeWidth={4} /></motion.div>}
                                         </div>
-                                        <span style={{ fontSize: `${fontSize}px` }} className={cn("leading-relaxed select-none transition-all",
+                                        <span style={{ fontSize: `${fontSize}px`, fontFamily: fontFamily, fontWeight: fontWeight }} className={cn("leading-relaxed select-none transition-all",
                                             isChecked ? dark ? "text-gray-600 line-through" : "text-gray-400 line-through" : ""
                                         )}>
                                             {task}
@@ -894,6 +1009,13 @@ const App = () => {
             <AnimatePresence>
                 {showCheatsheet && (
                     <CheatsheetViewer images={cheatsheets} onClose={() => setShowCheatsheet(false)} hotkeyLabel={hotkeys.cheatsheet} />
+                )}
+            </AnimatePresence>
+
+            {/* ===== 路線圖視窗 ===== */}
+            <AnimatePresence>
+                {showActMap && (
+                    <CheatsheetViewer images={actImages[currentAct] || []} onClose={() => setShowActMap(false)} hotkeyLabel="100%" />
                 )}
             </AnimatePresence>
 
