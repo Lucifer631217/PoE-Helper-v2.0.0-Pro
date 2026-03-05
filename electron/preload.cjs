@@ -14,14 +14,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getVisible: () => ipcRenderer.invoke('get-visible'),
     // 判斷是否在 Electron 環境
     isElectron: true,
-    // 選擇速查表圖片
+
+    // --- 圖片選擇 ---
+    // 選擇單張速查表圖片 (相容)
     selectImage: () => ipcRenderer.invoke('select-image'),
-    // 註冊速查表熱鍵事件
+    // 選擇多張速查表圖片
+    selectImages: () => ipcRenderer.invoke('select-images'),
+
+    // --- 快捷鍵 ---
+    // 取得快捷鍵設定
+    getHotkeys: () => ipcRenderer.invoke('get-hotkeys'),
+    // 設定快捷鍵
+    setHotkeys: (hotkeys) => ipcRenderer.invoke('set-hotkeys', hotkeys),
+    // 監聽快捷鍵變更
+    onHotkeysChanged: (callback) => ipcRenderer.on('hotkeys-changed', (event, ...args) => callback(...args)),
+    offHotkeysChanged: () => ipcRenderer.removeAllListeners('hotkeys-changed'),
+
+    // --- 速查表熱鍵事件 ---
     onToggleCheatsheet: (callback) => ipcRenderer.on('toggle-cheatsheet', (event, ...args) => callback(...args)),
-    // 移除速查表熱鍵事件
-    offToggleCheatsheet: (callback) => ipcRenderer.removeAllListeners('toggle-cheatsheet'),
-    // 註冊 Vendor Regex 熱鍵事件
+    offToggleCheatsheet: () => ipcRenderer.removeAllListeners('toggle-cheatsheet'),
+
+    // --- Vendor Regex 熱鍵事件 ---
     onToggleRegex: (callback) => ipcRenderer.on('toggle-regex', (event, ...args) => callback(...args)),
-    // 移除 Vendor Regex 熱鍵事件
-    offToggleRegex: (callback) => ipcRenderer.removeAllListeners('toggle-regex'),
+    offToggleRegex: () => ipcRenderer.removeAllListeners('toggle-regex'),
 });
