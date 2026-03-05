@@ -685,7 +685,7 @@ const App = () => {
                     <div>
                         <h1 className="text-xs font-bold leading-none">
                             {completedTasks}/{totalTasks} ({progressPercent}%)
-                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.1.0</span>
+                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.2.0</span>
                         </h1>
                         <p className={cn("text-[9px] font-medium", textSecondary)}>{isElectron ? `${hotkeys.toggle} 隱藏` : 'PoE Helper'}</p>
                     </div>
