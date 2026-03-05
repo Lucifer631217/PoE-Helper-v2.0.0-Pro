@@ -27,21 +27,7 @@
 | **速查表** | `F9` | 開啟或切換多張圖片速查表 |
 | **Regex** | `F8` | 開啟常用的 Regex 搜尋面板 |
 
-## 📦 下載與安裝
 
-你可以在 [Releases](../../releases) 頁面下載：
-- **安裝版 (.exe)**：推薦使用，會建立桌面捷徑。
-- **綠色免安裝版**：解壓縮後執行 `PoE 開荒助手 Pro.exe` 即可使用。
-
-## 🛠️ 開發人員資訊
-
-1. 確保已安裝 [Node.js](https://nodejs.org/)。
-2. 進入子目錄：`cd poe_helper_web`
-3. 安裝依賴：`npm install`
-4. 開發模式：`npm run electron:dev`
-5. 打包安裝檔：`npm run electron:build`
-
----
 *本工具僅作為介面輔助，不包含任何自動化遊戲操作，符合遊戲規範。*
 
 
@@ -68,11 +54,3 @@
 | **F10** | 切換整個助手視窗的顯示/隱藏 |
 
 
-本專案使用 Vite 作為建構工具。
-
-## 📦 技術棧
-
-- **Frontend**: React, Tailwind CSS, Lucide React
-- **Animation**: Framer Motion
-- **Desktop**: Electron (IPC, Global Shortcuts)
-- **Build**: Vite
