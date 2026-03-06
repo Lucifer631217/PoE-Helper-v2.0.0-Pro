@@ -718,7 +718,7 @@ const App = () => {
                     <div>
                         <h1 className="text-xs font-bold leading-none">
                             {completedTasks}/{totalTasks} ({progressPercent}%)
-                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.3</span>
+                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.4</span>
                             {updateStatus === 'downloaded' && (
                                 <span className="ml-1.5 px-1 bg-green-500 text-white rounded-[3px] text-[8px] animate-pulse">UPDATE READY</span>
                             )}
