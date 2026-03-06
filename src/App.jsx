@@ -369,6 +369,9 @@ const HOTKEY_LABELS = {
     toggle: '隱藏/顯示',
     cheatsheet: '速查表',
     regex: 'Regex',
+    timer: '計時器 開始/暫停',
+    prevAct: '上一章',
+    nextAct: '下一章',
 };
 
 const HotkeySettingsModal = ({ hotkeys, onSave, onClose, dark }) => {
@@ -508,7 +511,7 @@ const App = () => {
     const [showTimer, setShowTimer] = useState(saved?.showTimer ?? true);
     const [showGuide, setShowGuide] = useState(saved?.showGuide ?? true);
     // 快捷鍵
-    const [hotkeys, setHotkeys] = useState({ toggle: 'F10', cheatsheet: 'F9', regex: 'F8' });
+    const [hotkeys, setHotkeys] = useState({ toggle: 'F10', cheatsheet: 'F9', regex: 'F8', timer: '', prevAct: '', nextAct: '' });
     const acts = Object.keys(guideData);
     const safeActIdx = actIdx < acts.length ? actIdx : 0;
     const currentAct = acts[safeActIdx];
@@ -572,6 +575,27 @@ const App = () => {
         return () => window.electronAPI.offToggleRegex();
     }, []);
 
+    // --- 計時器、章節快捷鍵 ---
+    useEffect(() => {
+        if (!isElectron) return;
+        const toggleTimer = () => setIsRunning(v => !v);
+        window.electronAPI.onToggleTimer(toggleTimer);
+        return () => window.electronAPI.offToggleTimer();
+    }, []);
+
+    const nextAct = useCallback(() => setActIdx(i => (i + 1) % acts.length), [acts.length]);
+    const prevAct = useCallback(() => setActIdx(i => (i - 1 + acts.length) % acts.length), [acts.length]);
+
+    useEffect(() => {
+        if (!isElectron) return;
+        window.electronAPI.onPrevAct(prevAct);
+        window.electronAPI.onNextAct(nextAct);
+        return () => {
+            window.electronAPI.offPrevAct();
+            window.electronAPI.offNextAct();
+        };
+    }, [prevAct, nextAct]);
+
     // --- 監聽快捷鍵變更事件 ---
     useEffect(() => {
         if (!isElectron) return;
@@ -603,8 +627,6 @@ const App = () => {
 
     const handleOpacity = (val) => { setOpacity(val); if (isElectron) window.electronAPI.setOpacity(val); };
     const toggleTask = (task) => { const k = `${currentAct}_${task}`; setCheckedTasks(p => ({ ...p, [k]: !p[k] })); };
-    const nextAct = () => setActIdx(i => (i + 1) % acts.length);
-    const prevAct = () => setActIdx(i => (i - 1 + acts.length) % acts.length);
 
     const resetAll = () => {
         if (!window.confirm('確認重置所有進度？')) return;
@@ -659,7 +681,7 @@ const App = () => {
                     <div>
                         <h1 className="text-xs font-bold leading-none">
                             {completedTasks}/{totalTasks} ({progressPercent}%)
-                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.2</span>
+                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.3</span>
                         </h1>
                         <p className={cn("text-[9px] font-medium", textSecondary)}>{isElectron ? `${hotkeys.toggle} 隱藏` : 'PoE Helper'}</p>
                     </div>

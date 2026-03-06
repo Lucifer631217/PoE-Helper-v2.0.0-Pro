@@ -42,6 +42,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onToggleRegex: (callback) => ipcRenderer.on('toggle-regex', (event, ...args) => callback(...args)),
     offToggleRegex: () => ipcRenderer.removeAllListeners('toggle-regex'),
 
+    // --- 新增熱鍵事件 ---
+    onToggleTimer: (callback) => ipcRenderer.on('toggle-timer', (event, ...args) => callback(...args)),
+    offToggleTimer: () => ipcRenderer.removeAllListeners('toggle-timer'),
+    onPrevAct: (callback) => ipcRenderer.on('prev-act', (event, ...args) => callback(...args)),
+    offPrevAct: () => ipcRenderer.removeAllListeners('prev-act'),
+    onNextAct: (callback) => ipcRenderer.on('next-act', (event, ...args) => callback(...args)),
+    offNextAct: () => ipcRenderer.removeAllListeners('next-act'),
+
     // --- Viewer Windows ---
     openViewer: (options) => ipcRenderer.send('open-viewer', options),
     closeViewer: (id) => ipcRenderer.send('close-viewer', id),

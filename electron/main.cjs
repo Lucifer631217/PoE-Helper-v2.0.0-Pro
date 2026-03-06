@@ -79,7 +79,10 @@ savedOpacity = config.opacity ?? 0.9;
 let hotkeys = config.hotkeys ?? {
     toggle: 'F10',
     cheatsheet: 'F9',
-    regex: 'F8'
+    regex: 'F8',
+    timer: '',
+    prevAct: '',
+    nextAct: ''
 };
 
 // ============================================================
@@ -136,6 +139,36 @@ function registerHotkeys() {
                 mainWindow.webContents.send('toggle-regex');
             });
         } catch (e) { console.error('註冊 Regex 快捷鍵失敗:', e); }
+    }
+
+    // 計時器 開始/暫停
+    if (hotkeys.timer) {
+        try {
+            globalShortcut.register(hotkeys.timer, () => {
+                if (!mainWindow) return;
+                mainWindow.webContents.send('toggle-timer');
+            });
+        } catch (e) { console.error('註冊計時器快捷鍵失敗:', e); }
+    }
+
+    // 上一章
+    if (hotkeys.prevAct) {
+        try {
+            globalShortcut.register(hotkeys.prevAct, () => {
+                if (!mainWindow) return;
+                mainWindow.webContents.send('prev-act');
+            });
+        } catch (e) { console.error('註冊上一章快捷鍵失敗:', e); }
+    }
+
+    // 下一章
+    if (hotkeys.nextAct) {
+        try {
+            globalShortcut.register(hotkeys.nextAct, () => {
+                if (!mainWindow) return;
+                mainWindow.webContents.send('next-act');
+            });
+        } catch (e) { console.error('註冊下一章快捷鍵失敗:', e); }
     }
 }
 
