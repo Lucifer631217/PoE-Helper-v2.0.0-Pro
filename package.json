@@ -1,7 +1,7 @@
 {
   "name": "poe-helper-web",
   "private": true,
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Path of Exile 開荒助手 Pro",
   "author": "Lucifer",
   "type": "module",

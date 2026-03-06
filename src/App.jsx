@@ -27,7 +27,8 @@ import {
     Keyboard,
     Timer,
     ListChecks,
-    Map
+    Map,
+    FolderOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -586,6 +587,16 @@ const App = () => {
     // --- 持久化 ---
     const persist = useCallback(() => {
         saveConfig({ last_act: safeActIdx, checked: checkedTasks, time: elapsedMs, alpha: opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide });
+
+        // 請求清理未使用的圖片檔案
+        if (isElectron) {
+            const activeUrls = new Set();
+            cheatsheets.forEach(url => activeUrls.add(url));
+            Object.values(actImages).forEach(arr => {
+                arr.forEach(url => activeUrls.add(url));
+            });
+            window.electronAPI.cleanupImages(Array.from(activeUrls));
+        }
     }, [safeActIdx, checkedTasks, elapsedMs, opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide]);
     useEffect(() => { persist(); }, [safeActIdx, checkedTasks, opacity, dark, fontSize, fontFamily, fontWeight, cheatsheets, actImages, regexes, showTimer, showGuide]);
     useEffect(() => { if (!isRunning) { persist(); return; } const id = setInterval(persist, 5000); return () => clearInterval(id); }, [isRunning, persist]);
@@ -648,7 +659,7 @@ const App = () => {
                     <div>
                         <h1 className="text-xs font-bold leading-none">
                             {completedTasks}/{totalTasks} ({progressPercent}%)
-                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.1</span>
+                            <span className="ml-1.5 opacity-50 font-normal text-[9px]">v2.3.2</span>
                         </h1>
                         <p className={cn("text-[9px] font-medium", textSecondary)}>{isElectron ? `${hotkeys.toggle} 隱藏` : 'PoE Helper'}</p>
                     </div>
@@ -843,9 +854,19 @@ const App = () => {
                                 </div>
                             )}
 
-                            {/* 快捷鍵提示 */}
-                            <div className={cn("text-[9px] px-2.5 py-1.5 rounded-lg leading-relaxed", dark ? "bg-[#1e1f22] text-gray-500" : "bg-gray-50 text-[#9aa0a6]")}>
-                                {isElectron ? `⌨️ ${hotkeys.regex} Regex · ${hotkeys.cheatsheet} 速查表 · ${hotkeys.toggle} 隱藏/顯示` : '💡 Electron 版支援視窗置頂與快捷鍵'}
+                            {/* 快捷鍵提示與開啟資料夾 */}
+                            <div className="flex items-center gap-2">
+                                <div className={cn("flex-1 text-[9px] px-2.5 py-1.5 rounded-lg leading-relaxed", dark ? "bg-[#1e1f22] text-gray-500" : "bg-gray-50 text-[#9aa0a6]")}>
+                                    {isElectron ? `⌨️ ${hotkeys.regex} Regex · ${hotkeys.cheatsheet} 速查表 · ${hotkeys.toggle} 隱藏` : '💡 Electron 版支援視窗置頂與快捷鍵'}
+                                </div>
+                                {isElectron && (
+                                    <button onClick={() => window.electronAPI.openImagesFolder()}
+                                        className={cn("px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all active:scale-95 shrink-0 flex items-center gap-1.5",
+                                            dark ? "bg-gray-700 text-gray-400 hover:text-white hover:bg-gray-600" : "bg-gray-100 text-[#5f6368] hover:bg-gray-200"
+                                        )} title="開啟圖片儲存目錄尋找/刪除圖片">
+                                        <FolderOpen size={12} /><span>圖片目錄</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </motion.div>

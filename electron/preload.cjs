@@ -15,11 +15,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 判斷是否在 Electron 環境
     isElectron: true,
 
-    // --- 圖片選擇 ---
+    // --- 圖片選擇與清理 ---
     // 選擇單張速查表圖片 (相容)
     selectImage: () => ipcRenderer.invoke('select-image'),
     // 選擇多張速查表圖片
     selectImages: () => ipcRenderer.invoke('select-images'),
+    // 清理未使用的圖片
+    cleanupImages: (activeUrls) => ipcRenderer.send('cleanup-images', activeUrls),
+    // 開啟圖片資料夾
+    openImagesFolder: () => ipcRenderer.send('open-images-folder'),
 
     // --- 快捷鍵 ---
     // 取得快捷鍵設定

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
@@ -30,6 +30,27 @@ function saveElectronConfig(data) {
         const merged = { ...existing, ...data };
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(merged, null, 2), 'utf-8');
     } catch (e) { console.error('儲存設定失敗:', e); }
+}
+
+// ============================================================
+// 圖片持久化機制 (複製到 userData)
+// ============================================================
+const USER_IMAGES_DIR = path.join(app.getPath('userData'), 'user_images');
+if (!fs.existsSync(USER_IMAGES_DIR)) {
+    fs.mkdirSync(USER_IMAGES_DIR, { recursive: true });
+}
+
+function copyImageToUserData(sourcePath) {
+    try {
+        const ext = path.extname(sourcePath);
+        const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}${ext}`;
+        const targetPath = path.join(USER_IMAGES_DIR, filename);
+        fs.copyFileSync(sourcePath, targetPath);
+        return `file:///${targetPath.replace(/\\/g, '/')}`;
+    } catch (e) {
+        console.error('複製圖片失敗:', e);
+        return `file:///${sourcePath.replace(/\\/g, '/')}`; // Fallback to original path
+    }
 }
 
 // ============================================================
@@ -281,7 +302,7 @@ function createWindow() {
             filters: [{ name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp'] }]
         });
         if (!result.canceled && result.filePaths.length > 0) {
-            return `file:///${result.filePaths[0].replace(/\\/g, '/')}`;
+            return copyImageToUserData(result.filePaths[0]);
         }
         return null;
     });
@@ -294,9 +315,45 @@ function createWindow() {
             filters: [{ name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp'] }]
         });
         if (!result.canceled && result.filePaths.length > 0) {
-            return result.filePaths.map(p => `file:///${p.replace(/\\/g, '/')}`);
+            return result.filePaths.map(p => copyImageToUserData(p));
         }
         return null;
+    });
+
+    // --- IPC：清理未使用的圖片 ---
+    ipcMain.on('cleanup-images', (event, activeUrls) => {
+        try {
+            const activeFilenames = new Set(
+                activeUrls
+                    .filter(url => url.includes('/user_images/'))
+                    .map(url => {
+                        const parts = url.split('/');
+                        return decodeURIComponent(parts[parts.length - 1]);
+                    })
+            );
+
+            if (fs.existsSync(USER_IMAGES_DIR)) {
+                const files = fs.readdirSync(USER_IMAGES_DIR);
+                files.forEach(file => {
+                    if (!activeFilenames.has(file)) {
+                        try {
+                            fs.unlinkSync(path.join(USER_IMAGES_DIR, file));
+                        } catch (err) {
+                            console.error(`刪除未使用圖片失敗 ${file}:`, err);
+                        }
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('清理圖片時發生錯誤:', e);
+        }
+    });
+
+    // --- IPC：開啟圖片目錄 ---
+    ipcMain.on('open-images-folder', () => {
+        if (fs.existsSync(USER_IMAGES_DIR)) {
+            shell.openPath(USER_IMAGES_DIR);
+        }
     });
 
     // --- IPC：取得快捷鍵設定 ---
